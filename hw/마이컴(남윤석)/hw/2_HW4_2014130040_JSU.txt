@@ -1,0 +1,527 @@
+#include "stm32f4xx.h"
+#include "GLCD.h"
+
+void _RCC_Init(void);
+void _GPIO_Init(void);
+void _EXTI_Init(void);
+
+void BEEP(void); //소리함수 30ms 간격
+void Coin_flag(void);
+void RunMenu(void);//초기 LCD화면 함수
+
+void Black(); //블랙커피 함수
+void Sugar(); //설탕커피 함수
+void Mix(); //믹스커피 함수
+
+void DelayMS(unsigned short wMS);
+void DelayUS(unsigned short wUS);
+
+uint8_t	SW0_Flag;//인터럽트를 위해 선언한 SW0 변수
+uint8_t coin_flag = 1; //conin_flag변수를 8비트 int형식으로 선언 및 1로 초기화
+
+int main(void)
+{
+	_RCC_Init();
+	_GPIO_Init();
+	_EXTI_Init();
+	LCD_Init();	//LCD함수 호출
+	BEEP(); //BEEP함수 호출
+	DelayMS(100);
+
+	GPIOG->ODR &= 0x11111100;		// 초기값: LED0~7 Off 
+	RunMenu(); //LCD 초기화면구동 함수
+
+	while (1)
+	{
+		//EXTI SW0가 High에서 Low가 될 때 (Falling edge Trigger mode) LED0 toggle
+		if (SW0_Flag) //코인을 넣었을 때
+		{
+			BEEP(); //소리 함수 호출
+			GPIOG->ODR |= 0x0001; //0번 LED 점등
+			Coin_flag();  // 코인 숫자 증가 함수 호출 0~9
+			coin_flag++; //coin_falg값을 1씩 증가
+			while (1)
+			{
+				if ((GPIOH->IDR & 0x2000) == 0) //SW5번 눌렀을 때
+				{
+					Black();//블랙커피 함수 호출
+					break;//와일문 탈출
+				}
+				else if ((GPIOH->IDR & 0x4000) == 0)//SW6번 눌렀을 때
+				{
+					Sugar();
+					break;
+				}
+				else if ((GPIOH->IDR & 0x8000) == 0)//SW7번 눌렀을 때
+				{
+					Mix();
+					break;
+				}
+				SW0_Flag = 0;
+
+			}
+			GPIOG->ODR &= ~0x0001; //LED0 소등
+		}
+	}
+}
+
+void Coin_flag() //코인 숫자 증가 함수 0~9 
+{
+  if(coin_flag == 0)
+  {
+    LCD_DisplayText(0,15,"C");
+    LCD_DisplayText(1,15,"0");
+  }
+  else if(coin_flag == 1) //처음 SW0 눌렀을 때 (초기값이 1이라서 여기부터 시작)
+  {
+    LCD_DisplayText(0,15,"C");
+    LCD_DisplayText(1,15,"1");
+  }
+  else if(coin_flag == 2)
+  {
+    LCD_DisplayText(0,15,"C");
+    LCD_DisplayText(1,15,"2");
+  }
+  else if(coin_flag == 3)
+  {
+    LCD_DisplayText(0,15,"C");
+    LCD_DisplayText(1,15,"3");
+  }
+  else if(coin_flag == 4)
+  {
+    LCD_DisplayText(0,15,"C");
+    LCD_DisplayText(1,15,"4");
+  }
+  else if(coin_flag == 5)
+  {
+    LCD_DisplayText(0,15,"C");
+    LCD_DisplayText(1,15,"5");
+  }
+  else if(coin_flag == 6)
+  {
+    LCD_DisplayText(0,15,"C");
+    LCD_DisplayText(1,15,"6");
+  }
+  else if(coin_flag == 7)
+  {
+    LCD_DisplayText(0,15,"C");
+    LCD_DisplayText(1,15,"7");
+  }
+  else if(coin_flag == 8)
+  {
+    LCD_DisplayText(0,15,"C");
+    LCD_DisplayText(1,15,"8");
+  }
+  else if(coin_flag == 9) //coin_falg가 9일때
+  {
+    LCD_DisplayText(0,15,"C");
+    LCD_DisplayText(1,15,"9");
+    coin_flag = -1; //coin_flag값에 -1을 넣어준다 (coin_flag는 8비트 이므로 9의 값을 넘어갔을 때  0의 값으로 돌아간다.
+                          //그런데 SW0가 눌릴 때 마다 1의 값씩 증가하므로 마지막에 -1을 넣어서 coin_flag을 0으로 만들어준다.)
+  }
+}
+
+void Black()//블랙커피 함수
+{
+    GPIOG->ODR |= 0x0020; //LED5번 점등
+    BEEP();//소리함수 호출
+    DelayMS(500);//0.5초 딜레이
+    LCD_DisplayText(1, 7, "u");
+    DelayMS(500);
+    LCD_DisplayText(1, 7, "f");
+    DelayMS(500);
+    LCD_DisplayText(1, 7, "w");
+    DelayMS(500);
+    LCD_DisplayText(1, 7, "x");
+    DelayMS(500);
+    BEEP();
+    DelayMS(500);
+    BEEP();
+    DelayMS(500);
+    BEEP();
+    LCD_DisplayText(1, 7, "x");
+    LCD_DisplayText(0, 15, "S");
+    GPIOG->ODR &= ~0x0020; //LED5번 소등
+}
+void Sugar()
+{
+    GPIOG->ODR |= 0x0040;//LED6번 점등
+    BEEP();
+    DelayMS(500);
+    LCD_DisplayText(1, 9, "u");
+    DelayMS(500);
+    LCD_DisplayText(1, 9, "f");
+    DelayMS(500);
+    LCD_DisplayText(1, 9, "s");
+    DelayMS(500);
+    LCD_DisplayText(1, 9, "w");
+    DelayMS(500);
+    BEEP();
+    DelayMS(500);
+    BEEP();
+    DelayMS(500);
+    BEEP();
+    LCD_DisplayText(1, 9, "x");
+    LCD_DisplayText(0, 15, "S");
+    GPIOG->ODR &= ~0x0040;//LED6번 소등
+
+}
+
+void Mix()
+{
+    GPIOG->ODR |= 0x0080;//LED7번 점등
+    BEEP();
+    DelayMS(500);
+    LCD_DisplayText(1, 11, "u");
+    DelayMS(500);
+    LCD_DisplayText(1, 11, "f");
+    DelayMS(500);
+    LCD_DisplayText(1, 11, "s");
+    DelayMS(500);
+    LCD_DisplayText(1, 11, "c");
+    DelayMS(500);
+    LCD_DisplayText(1, 11, "w");
+    DelayMS(500);
+    BEEP();
+    DelayMS(500);
+    BEEP();
+    DelayMS(500);
+    BEEP();
+    LCD_DisplayText(1, 11, "x");
+    LCD_DisplayText(0, 15, "S");
+    GPIOG->ODR &= ~0x0080;//LED7번 소등
+}
+
+void _GPIO_Init(void)
+{
+	// LED GPIO(PORT G) 설정
+    RCC->AHB1ENR	|= 0x00000040; 	// RCC_AHB1ENR(bit8~0) GPIOG(bit#6) Enable							
+	GPIOG->MODER 	= 0x00005555;	// GPIOG PIN0~PIN7 Output mode (0b01)						
+	GPIOG->OTYPER	= 0x0000;	// GPIOG PIN0~PIN7 : Push-pull  (PIN8~PIN15) (reset state)	
+ 	GPIOG->OSPEEDR 	= 0x00005555;	// GPIOG PIN0~PIN7 Output speed (25MHZ Medium speed) 
+    
+	// SW GPIO(PORT H) 설정 
+	RCC->AHB1ENR    |= 0x00000080;	// RCC_AHB1ENR(bit8~0) GPIOH(bit#7) Enable							
+	GPIOH->MODER 	= 0x00000000;	// GPIOH PIN8~PIN15 Input mode (reset state)				
+	GPIOH->PUPDR 	= 0x00000000;	// GPIOH PIN8~PIN15 Floating input (No Pull-up, pull-down) (reset state)
+
+	// Buzzer GPIO(PORT F) 설정 
+    RCC->AHB1ENR	|= 0x00000020; 	// RCC_AHB1ENR(bit8~0) GPIOF(bit#5) Enable							
+	GPIOF->MODER 	|= 0x00040000;	// GPIOF PIN9 Output mode (0b01)						
+	GPIOF->OTYPER 	&= 0xFDFF;	// GPIOF PIN9 : Push-pull  	
+ 	GPIOF->OSPEEDR 	|= 0x00040000;	// GPIOF PIN9 Output speed (25MHZ Medium speed) 
+}	
+
+void _EXTI_Init(void) 
+{
+    RCC->AHB1ENR 	|= 0x80;	// RCC_AHB1ENR GPIOH Enable
+	RCC->APB2ENR 	|= 0x4000;	//Enable System Configuration Controller Clock
+	
+	GPIOH->MODER 	&=  0x00FF;	// GPIOH PIN8~PIN15 Input mode (reset state)				 
+	
+	SYSCFG->EXTICR[2] |= 0x0077; 	// EXTI8,9에 대한 소스 입력은 GPIOH로 설정 (EXTICR3) (reset value: 0x0000)	
+	
+	EXTI->FTSR |= 0x000100;		// Falling Trigger Enable  (EXTI8:PH8)
+	EXTI->RTSR |= 0x000200;		// Rising Trigger  Enable  (EXTI9:PH9) 
+    EXTI->IMR |= 0x000300;  	// EXTI8,9 인터럽트 mask (Interrupt Enable)
+		
+	NVIC->ISER[0] 	|= ( 1 << 23 ); // Enable Interrupt EXTI8,9 Vector table Position 참조
+}
+
+void EXTI9_5_IRQHandler(void)		// EXTI 5~9 인터럽트 핸들러
+{
+    if(EXTI->PR & 0x0100) 		// EXTI8 nterrupt Pending?
+    {
+        EXTI->PR |= 0x0100; 		// Pending bit Clear
+	SW0_Flag = 1;
+    }
+}
+
+void BEEP(void)			/* beep for 30 ms */
+{ 	
+    GPIOF->ODR |= 0x0200;	// PF9 'H' Buzzer on
+	DelayMS(30);		// Delay 30 ms
+	GPIOF->ODR &= ~0x0200;	// PF9 'L' Buzzer off
+}
+
+void DelayMS(unsigned short wMS)
+{
+    register unsigned short i;
+    for (i=0; i<wMS; i++)
+        DelayUS(1000);         		// 1000us => 1ms
+}
+
+void DelayUS(unsigned short wUS)
+{
+    volatile int Dly = (int)wUS*17;
+    for(; Dly; Dly--);
+}
+
+void RunMenu(void)
+{
+        LCD_Clear(RGB_YELLOW);
+        LCD_SetFont(&Gulim8);		//폰트 
+        LCD_SetBackColor(RGB_YELLOW);	//글자배경색
+        LCD_SetTextColor(RGB_BLACK);	//글자색
+
+        LCD_DisplayText(0,0,"COFFEE:"); //0: 첫 번째 줄(y축), 0: 첫 번째 줄(x축), " ":(출력 문자열)
+        LCD_DisplayText(0,7,"B");
+        LCD_DisplayText(0,9,"S");
+        LCD_DisplayText(0,11,"M");
+        LCD_DisplayText(0,15,"S");
+
+        LCD_DisplayText(1,0,"STATUS:");
+        LCD_DisplayText(1,7,"x");
+        LCD_DisplayText(1,9,"x");
+        LCD_DisplayText(1,11,"x");
+        LCD_DisplayText(1,15,"0");
+}
+
+/******************************************************************************/
+/*     RCC Set up                                                             */
+/******************************************************************************/
+void _RCC_Init(void)
+{
+// PLL (clocked by HSE) used as System clock source                    
+
+    __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
+
+    // Enable HSE */
+    RCC->CR |= 0x00010000;	// Set bit#16 of CR
+ 
+    // Wait till HSE is ready and if Time out is reached exit 
+    do
+    {
+	HSEStatus = RCC->CR & 0x00020000;	// CHECK bit#17 of CR (HSE RDY?) 
+	StartUpCounter++;
+    } while((HSEStatus == 0) && (StartUpCounter != HSE_STARTUP_TIMEOUT));
+
+    if ((RCC->CR & 0x00020000) != RESET)	// CHECK bit#17 of CR (HSE RDY?) // RESET is 0
+    {
+	HSEStatus = 0x01;	// HSE is Ready!
+    }
+    else
+    {
+	HSEStatus = 0x00;	// HSE is NOT Ready!
+    }
+
+    if (HSEStatus == 0x01)	// HSE clock Enable
+    {
+	// HCLK = SYSCLK / 1 
+	RCC->CFGR |= 0x00000000;
+ 
+	// PCLK2 = HCLK / 2 
+	RCC->CFGR |= 0x00008000;	// PPRE2: APB(Advanced Peripheral Bus)(APB2) High-speed prescaler
+					// 100: AHB clock divided by 2 
+
+	// PCLK1 = HCLK / 4 
+	RCC->CFGR |= 0x00001400;	// PPRE1: APB(Advanced Peripheral Bus)(APB1) Low-speed prescaler
+					// 101: AHB clock divided by 4 
+
+    	// Configure the main PLL 
+	// Reset vlaue: 0x2400 3010 (PPLQ:4, PLLSR:0, PLL_M:16, PLL_N:192, PLL_P: 2(00))
+	RCC->PLLCFGR |= 25;			// PLL_M(6bits): 25(0b011001): /25
+	RCC->PLLCFGR |= (336 << 6);		// PLL_N(9bits): 336 : *336
+	RCC->PLLCFGR |= (((2 >> 1) -1)<<16);// PLL_P(2bits): (2 >> 1) -1=0b00 :  2 : /2 
+	RCC->PLLCFGR |= 0x00400000; 	// PLL_SR(1bit): 1 : HSE oscillator clock selected as PLL and PLLI2S clock
+	    
+	// Enable the main PLL 
+	RCC->CR |= 0x01000000;	// Set bit#24 of CR : PLL ON
+
+	// Wait till the main PLL is ready 
+	while((RCC->CR & 0x02000000) == 0)	// CHECK bit#25 : PLL RDY?  
+	{}
+   
+	// Configure Flash prefetch, Instruction cache, Data cache and wait state 
+	FLASH->ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_5WS;
+
+	// Select the main PLL as system clock source 
+	// Reset value of RCC->CFGR: 0x0000 0000
+	RCC->CFGR &= ~0x00000003;	// clear, (Reset value: HSI) 
+	RCC->CFGR |= 0x00000002;	// PLL
+
+	// Wait till the main PLL is used as system clock source 
+	while ((RCC->CFGR & 0x0000000C ) != 0x00000008);	// CHECK bit#2~3 : PLL as system clock is RDY?  
+	{}
+    }
+    else
+    { // If HSE fails to start-up, the application will have wrong clock
+        // configuration. User can add here some code to deal with this error 
+    }
+}
+
+/**************************************************************************
+// 보충 설명자료
+// 다음은 stm32f4xx.h에 있는 RCC관련 주요 선언문임 
+#define HSE_STARTUP_TIMEOUT    ((uint16_t)0x05000)   // Time out for HSE start up 
+typedef enum {RESET = 0, SET = !RESET} FlagStatus, ITStatus;
+
+#define FLASH_BASE            ((uint32_t)0x08000000) // FLASH(up to 1 MB) base address in the alias region                          
+#define CCMDATARAM_BASE       ((uint32_t)0x10000000) // CCM(core coupled memory) data RAM(64 KB) base address in the alias region   
+#define SRAM1_BASE            ((uint32_t)0x20000000) // SRAM1(112 KB) base address in the alias region                              
+
+#if defined(STM32F40_41xxx) 
+#define SRAM2_BASE            ((uint32_t)0x2001C000) // SRAM2(16 KB) base address in the alias region                               
+#define SRAM3_BASE            ((uint32_t)0x20020000) // SRAM3(64 KB) base address in the alias region                               
+#endif   
+
+#define PERIPH_BASE           ((uint32_t)0x40000000) // Peripheral base address in the alias region                                 
+#define BKPSRAM_BASE          ((uint32_t)0x40024000) // Backup SRAM(4 KB) base address in the alias region                          
+
+// Peripheral memory map  
+#define APB1PERIPH_BASE       PERIPH_BASE
+#define APB2PERIPH_BASE       (PERIPH_BASE + 0x00010000)
+#define AHB1PERIPH_BASE       (PERIPH_BASE + 0x00020000)
+#define AHB2PERIPH_BASE       (PERIPH_BASE + 0x10000000)
+
+// AHB1 peripherals  
+#define GPIOA_BASE            (AHB1PERIPH_BASE + 0x0000)
+#define GPIOB_BASE            (AHB1PERIPH_BASE + 0x0400)
+#define GPIOC_BASE            (AHB1PERIPH_BASE + 0x0800)
+#define GPIOD_BASE            (AHB1PERIPH_BASE + 0x0C00)
+#define GPIOE_BASE            (AHB1PERIPH_BASE + 0x1000)
+#define GPIOF_BASE            (AHB1PERIPH_BASE + 0x1400)
+#define GPIOG_BASE            (AHB1PERIPH_BASE + 0x1800)
+#define GPIOH_BASE            (AHB1PERIPH_BASE + 0x1C00)
+#define GPIOI_BASE            (AHB1PERIPH_BASE + 0x2000)
+#define GPIOJ_BASE            (AHB1PERIPH_BASE + 0x2400)
+#define GPIOK_BASE            (AHB1PERIPH_BASE + 0x2800)
+#define CRC_BASE              (AHB1PERIPH_BASE + 0x3000)
+#define RCC_BASE              (AHB1PERIPH_BASE + 0x3800)
+#define FLASH_R_BASE          (AHB1PERIPH_BASE + 0x3C00)
+#define SYSCFG_BASE           (APB2PERIPH_BASE + 0x3800)
+#define EXTI_BASE             (APB2PERIPH_BASE + 0x3C00)
+
+typedef struct
+{
+  __IO uint32_t CR;            // RCC clock control register, Address offset: 0x00  
+  __IO uint32_t PLLCFGR;       // RCC PLL configuration register, Address offset: 0x04  
+  __IO uint32_t CFGR;          // RCC clock configuration register, Address offset: 0x08  
+  __IO uint32_t CIR;           // RCC clock interrupt register, Address offset: 0x0C  
+  __IO uint32_t AHB1RSTR;      // RCC AHB1 peripheral reset register, Address offset: 0x10  
+  __IO uint32_t AHB2RSTR;      // RCC AHB2 peripheral reset register, Address offset: 0x14  
+  __IO uint32_t AHB3RSTR;      // RCC AHB3 peripheral reset register, Address offset: 0x18  
+  uint32_t      RESERVED0;     // Reserved, 0x1C                                                                    
+  __IO uint32_t APB1RSTR;      // RCC APB1 peripheral reset register, Address offset: 0x20  
+  __IO uint32_t APB2RSTR;      // RCC APB2 peripheral reset register, Address offset: 0x24  
+  uint32_t      RESERVED1[2];  // Reserved, 0x28-0x2C                                                                
+  __IO uint32_t AHB1ENR;       // RCC AHB1 peripheral clock register, Address offset: 0x30  
+  __IO uint32_t AHB2ENR;       // RCC AHB2 peripheral clock register, Address offset: 0x34  
+  __IO uint32_t AHB3ENR;       // RCC AHB3 peripheral clock register, Address offset: 0x38  
+  uint32_t      RESERVED2;     // Reserved, 0x3C                                                                     
+  __IO uint32_t APB1ENR;       // RCC APB1 peripheral clock enable register, Address offset: 0x40  
+  __IO uint32_t APB2ENR;       // RCC APB2 peripheral clock enable register, Address offset: 0x44  
+  uint32_t      RESERVED3[2];  // Reserved, 0x48-0x4C                                                                
+  __IO uint32_t AHB1LPENR;     // RCC AHB1 peripheral clock enable in low power mode register, Address offset: 0x50  
+  __IO uint32_t AHB2LPENR;     // RCC AHB2 peripheral clock enable in low power mode register, Address offset: 0x54  
+  __IO uint32_t AHB3LPENR;     // RCC AHB3 peripheral clock enable in low power mode register, Address offset: 0x58  
+  uint32_t      RESERVED4;     // Reserved, 0x5C                                                                     
+  __IO uint32_t APB1LPENR;     // RCC APB1 peripheral clock enable in low power mode register, Address offset: 0x60  
+  __IO uint32_t APB2LPENR;     // RCC APB2 peripheral clock enable in low power mode register, Address offset: 0x64  
+  uint32_t      RESERVED5[2];  // Reserved, 0x68-0x6C                                                                
+  __IO uint32_t BDCR;          // RCC Backup domain control register, Address offset: 0x70  
+  __IO uint32_t CSR;           // RCC clock control & status register, Address offset: 0x74  
+  uint32_t      RESERVED6[2];  // Reserved, 0x78-0x7C                                                                
+  __IO uint32_t SSCGR;         // RCC spread spectrum clock generation register, Address offset: 0x80  
+  __IO uint32_t PLLI2SCFGR;    // RCC PLLI2S configuration register, Address offset: 0x84  
+  __IO uint32_t PLLSAICFGR;    // RCC PLLSAI configuration register, Address offset: 0x88  
+  __IO uint32_t DCKCFGR;       // RCC Dedicated Clocks configuration register, Address offset: 0x8C  
+} RCC_TypeDef;
+	
+
+typedef struct
+{
+  __IO uint32_t ACR;      // FLASH access control register,   Address offset: 0x00  
+  __IO uint32_t KEYR;     // FLASH key register,              Address offset: 0x04  
+  __IO uint32_t OPTKEYR;  // FLASH option key register,       Address offset: 0x08  
+  __IO uint32_t SR;       // FLASH status register,           Address offset: 0x0C  
+  __IO uint32_t CR;       // FLASH control register,          Address offset: 0x10  
+  __IO uint32_t OPTCR;    // FLASH option control register ,  Address offset: 0x14  
+  __IO uint32_t OPTCR1;   // FLASH option control register 1, Address offset: 0x18  
+} FLASH_TypeDef;
+
+typedef struct
+{
+  __IO uint32_t MODER;    // GPIO port mode register,               Address offset: 0x00       
+  __IO uint32_t OTYPER;   // GPIO port output type register,        Address offset: 0x04       
+  __IO uint32_t OSPEEDR;  // GPIO port output speed register,       Address offset: 0x08       
+  __IO uint32_t PUPDR;    // GPIO port pull-up/pull-down register,  Address offset: 0x0C       
+  __IO uint32_t IDR;      // GPIO port input data register,         Address offset: 0x10       
+  __IO uint32_t ODR;      // GPIO port output data register,        Address offset: 0x14       
+  __IO uint16_t BSRRL;    // GPIO port bit set/reset low register,  Address offset: 0x18       
+  __IO uint16_t BSRRH;    // GPIO port bit set/reset high register, Address offset: 0x1A       
+  __IO uint32_t LCKR;     // GPIO port configuration lock register, Address offset: 0x1C       
+  __IO uint32_t AFR[2];   // GPIO alternate function registers,     Address offset: 0x20-0x24  
+} GPIO_TypeDef;
+
+typedef struct
+{
+  __IO uint32_t IMR;    // EXTI Interrupt mask register, Address offset: 0x00 
+  __IO uint32_t EMR;    // EXTI Event mask register, Address offset: 0x04 
+  __IO uint32_t RTSR;   // EXTI Rising trigger selection register,  Address offset: 0x08
+  __IO uint32_t FTSR;   // EXTI Falling trigger selection register, Address offset: 0x0C
+  __IO uint32_t SWIER;  // EXTI Software interrupt event register,  Address offset: 0x10 
+  __IO uint32_t PR;     // EXTI Pending register, Address offset: 0x14 
+} EXTI_TypeDef;
+
+typedef struct
+{
+  __IO uint32_t MEMRMP;       // SYSCFG memory remap register, Address offset: 0x00 
+  __IO uint32_t PMC;          // SYSCFG peripheral mode configuration register, Address offset: 0x04
+  __IO uint32_t EXTICR[4];    // SYSCFG external interrupt configuration registers, Address offset: 0x08-0x14 
+  uint32_t      RESERVED[2];  // Reserved, 0x18-0x1C     
+  __IO uint32_t CMPCR;        // SYSCFG Compensation cell control register,Address offset: 0x20
+
+} SYSCFG_TypeDef;
+
+#define GPIOA 	((GPIO_TypeDef *) GPIOA_BASE)
+#define GPIOB	((GPIO_TypeDef *) GPIOB_BASE)
+#define GPIOC   ((GPIO_TypeDef *) GPIOC_BASE)
+#define GPIOD   ((GPIO_TypeDef *) GPIOD_BASE)
+#define GPIOE  	((GPIO_TypeDef *) GPIOE_BASE)
+#define GPIOF   ((GPIO_TypeDef *) GPIOF_BASE)
+#define GPIOG   ((GPIO_TypeDef *) GPIOG_BASE)
+#define GPIOH   ((GPIO_TypeDef *) GPIOH_BASE)
+#define GPIOI   ((GPIO_TypeDef *) GPIOI_BASE)
+#define GPIOJ   ((GPIO_TypeDef *) GPIOJ_BASE)
+#define GPIOK   ((GPIO_TypeDef *) GPIOK_BASE)
+
+#define CRC             ((CRC_TypeDef *) CRC_BASE)
+#define RCC             ((RCC_TypeDef *) RCC_BASE)
+#define FLASH           ((FLASH_TypeDef *) FLASH_R_BASE)
+
+#define SYSCFG          ((SYSCFG_TypeDef *) SYSCFG_BASE)
+#define EXTI            ((EXTI_TypeDef *) EXTI_BASE)
+
+#define FLASH_ACR_PRFTEN             ((uint32_t)0x00000100)
+#define FLASH_ACR_ICEN               ((uint32_t)0x00000200)
+#define FLASH_ACR_DCEN               ((uint32_t)0x00000400)
+#define FLASH_ACR_ICRST              ((uint32_t)0x00000800)
+#define FLASH_ACR_DCRST              ((uint32_t)0x00001000)
+#define FLASH_ACR_BYTE0_ADDRESS      ((uint32_t)0x40023C00)
+#define FLASH_ACR_BYTE2_ADDRESS      ((uint32_t)0x40023C03)
+
+#define FLASH_ACR_LATENCY_5WS        ((uint32_t)0x00000005)
+
+typedef struct {
+  __IO uint32_t ISER[8];  // Offset: 0x000 Interrupt Set Enable Register    
+       uint32_t RESERVED0[24];                                   
+  __IO uint32_t ICER[8];  // Offset: 0x080 Interrupt Clear Enable Register  
+       uint32_t RSERVED1[24];                                    
+  __IO uint32_t ISPR[8];  // Offset: 0x100 Interrupt Set Pending Register   
+       uint32_t RESERVED2[24];                                   
+  __IO uint32_t ICPR[8];  // Offset: 0x180 Interrupt Clear Pending Register
+       uint32_t RESERVED3[24];                                   
+  __IO uint32_t IABR[8];  // Offset: 0x200 Interrupt Active bit Register      
+       uint32_t RESERVED4[56];                                   
+  __IO uint8_t  IP[240];  // Offset: 0x300 Interrupt Priority Register (8Bit) 
+       uint32_t RESERVED5[644];                                  
+  __O  uint32_t STIR;  // Offset: 0xE00 Software Trigger Interrupt Register    
+}  NVIC_Type; 
+     
+// Memory mapping of Cortex-M4 Hardware 
+#define SCS_BASE     (0xE000E000)    // System Control Space Base Address 
+#define NVIC_BASE   (SCS_BASE +  0x0100)  // NVIC Base Address  
+#define NVIC        ((NVIC_Type *)  NVIC_BASE) // NVIC configuration struct                                           
+
+*/ 

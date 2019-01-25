@@ -1,0 +1,180 @@
+#include "stm32f4xx.h"
+
+void GPIO_Init(void);
+void Reset(void);
+void DelayMS(unsigned short wMS);
+void DelayUS(unsigned short wUS);
+
+
+int main(void)
+{
+	GPIO_Init();
+
+         while(1)
+         {
+           GPIOG->ODR = 0x0; // 모든 LED Off ('L')
+                
+                if((GPIOH->IDR & 0x0100) != 0x0100) // 코인스위치(SW0)	
+                {
+                    GPIOG->ODR |= 0x01;		// LED1 On (GPIOG->ODR.1 'H')
+                    
+                        while(1) 
+                        {
+                               
+                                    if((GPIOH->IDR & 0x0200) != 0x0200)	//BLACK 커피 (SW1)
+                                    {
+                                            DelayMS(1000); //1초 딜레이
+                                            GPIOG->ODR |= 0x02; // LED1 점등 
+                                            DelayMS(1000); // 1초 딜레이
+                                            
+                                            GPIOG->ODR |= 0x80; // LED7 점등 (CUP)
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR &= ~0x80; //LED7 소등
+                                            DelayMS(500);
+                                             
+                                            GPIOG->ODR |= 0x10; //LED4 점등 (WATER/COFFEE)
+                                            DelayMS(500);
+                                            GPIOG->ODR &= ~0x10; //LDE4 소등
+                                            DelayMS(500);
+                                            GPIOG->ODR |= 0x10; //LED4 점등
+                                            DelayMS(500);
+                                            GPIOG->ODR &= ~0x10; //LDE4 소등
+                                            DelayMS(500);
+                                            GPIOG->ODR |= 0x10; //LED4 점등
+                                            DelayMS(500);
+                                            GPIOG->ODR &= ~0x10; //LDE4 소등 
+                                            DelayMS(500);
+                                            
+                                            GPIOG->ODR &= ~0x02;	//LED1 소등
+                                            //Reset();
+                                             DelayMS(500);
+                                            break; //두 번째 while(1) 문 탈출
+                                    }
+                                    
+                                    else if((GPIOH->IDR & 0x0400) != 0x0400) // SUGAR 커피(SW2)
+                                    {
+                                            DelayMS(1000); //1초 딜레이
+                                            GPIOG->ODR |= 0x04; //LED2 점등
+                                            DelayMS(1000);
+                                            
+                                           GPIOG->ODR |= 0x80; // LED7 점등 (CUP)
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR &= ~0x80; //LED7 소등
+                                            DelayMS(500);
+                                            
+                                            GPIOG->ODR |= 0x40; // LED6 점등 (SUGAR)
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR &= ~0x40; //LED6 소등
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR |= 0x40; // LED6 점등
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR &= ~0x40; //LED6 소등
+                                            DelayMS(500); // 0.5초 딜레이
+                                      
+                                            GPIOG->ODR |= 0x10; //LED4 점등 (WATER/COFFEE)
+                                            DelayMS(500);
+                                            GPIOG->ODR &= ~0x10; //LDE4 소등
+                                            DelayMS(500);
+                                            GPIOG->ODR |= 0x10; //LED4 점등
+                                            DelayMS(500);
+                                            GPIOG->ODR &= ~0x10; //LDE4 소등
+                                            DelayMS(500);
+                                            GPIOG->ODR |= 0x10; //LED4 점등
+                                            DelayMS(500);
+                                            GPIOG->ODR &= ~0x10; //LDE4 소등 
+                                            DelayMS(500);
+                                            
+                                            GPIOG->ODR &= ~0x04;	//LED2 소등
+                                            //Reset();
+                                             DelayMS(500);
+                                            break;
+                                    }
+                                    
+                                    else if((GPIOH->IDR & 0x0800) != 0x0800) //MIX 커피(SW3)
+                                    {
+                                            DelayMS(1000); //1초 딜레이
+                                            GPIOG->ODR |= 0x08; //LED3 점등
+                                            DelayMS(1000);
+                                             
+                                            GPIOG->ODR |= 0x80; // LED7 점등 (CUP)
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR &= ~0x80; //LED7 소등
+                                            DelayMS(500);
+                                            
+                                            GPIOG->ODR |= 0x40; // LED6 점등 (SUGAR)
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR &= ~0x40; //LED6 소등
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR |= 0x40; // LED6 점등
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR &= ~0x40; //LED6 소등
+                                            DelayMS(500); // 0.5초 딜레이
+                                            
+                                             
+                                            GPIOG->ODR |= 0x20; // LED5 점등 (CREAM)
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR &= ~0x20; //LED5 소등
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR |= 0x20; // LED5 점등
+                                            DelayMS(500); // 0.5초 딜레이
+                                            GPIOG->ODR &= ~0x20; //LED5 소등
+                                            DelayMS(500); // 0.5초 딜레이
+                                            
+                                            
+                                            GPIOG->ODR |= 0x10; //LED4 점등 (WATER/COFFEE)
+                                            DelayMS(500);
+                                            GPIOG->ODR &= ~0x10; //LDE4 소등
+                                            DelayMS(500);
+                                            GPIOG->ODR |= 0x10; //LED4 점등
+                                            DelayMS(500);
+                                            GPIOG->ODR &= ~0x10; //LDE4 소등
+                                            DelayMS(500);
+                                            GPIOG->ODR |= 0x10; //LED4 점등
+                                            DelayMS(500);
+                                            GPIOG->ODR &= ~0x10; //LDE4 소등 
+                                            DelayMS(500);
+                                            
+                                            GPIOG->ODR &= ~0x08;// LED3 소등
+                                             DelayMS(500);
+                                           // Reset();
+                                            break;
+                                            
+                                    }
+                              
+                        }
+                        
+                        Reset();
+                }  
+           
+        }
+
+}
+void GPIO_Init(void)
+{
+	// LED GPIO(PORT G) 설정
+    	RCC->AHB1ENR |= 0x00000040;  	// RCC_AHB1ENR(bit8~0) GPIOG(bit#6) Enable	(*(volatile unsigned*)0x40023830) |= 0x40; 
+	GPIOG->MODER |= 0x00005555;	// GPIOG PIN0~PIN7 Output mode (0b01)	(*(volatile unsigned*)0x40021800) |= 0x5555; 
+	GPIOG->OSPEEDR |= 0x00005555;	// GPIOG PIN0~PIN7 Output speed (25MHZ Medium speed) (*(volatile unsigned*)0x40021808) |= 0x5555; 
+    
+	// SW GPIO(PORT H) 설정 
+	RCC->AHB1ENR |=	0x00000080;	// RCC_AHB1ENR(bit8~0) GPIOH(bit#7) Enable	(*(volatile unsigned*)0x40023830) |= 0x80; 
+	GPIOH->MODER &=	0x0000FFFF;	// GPIOH PIN8~PIN15 Input mode (reset state) (*(volatile unsigned*)0x40021C00) |= 0x00000000;
+}	
+
+void DelayMS(unsigned short wMS) //시간 딜레이 함수
+{
+    register unsigned short i;
+    for (i=0; i<wMS; i++)
+        DelayUS(1000);         		// 1000us => 1ms
+}
+
+void DelayUS(unsigned short wUS)
+{
+    volatile int Dly = (int)wUS*17;
+    for(; Dly; Dly--);
+}
+
+void Reset(void) //리셋 함수
+{
+   GPIOG->ODR &= ~0x01; //LED0 소등
+}  

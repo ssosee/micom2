@@ -1,0 +1,171 @@
+/********************************************************************************
+
+마이컴 2_HW1_2014130040_JSU.c
+
+2014130040 메카트로닉스 3학년 장세웅입니다.
+
+커피 자판기 입니다.(대소문자 상관없음)
+알파벳 c 입력하신후 (c를 제외한 값을 입력하면 동작하지 않습니다.)
+S(s)ugar, B(b)lack, C(c)ream, M(m)ilk를 입력하시면 원하시는 커피가 나옵니다.
+
+**********************************************************************************/
+
+#include <stdio.h>
+#include <windows.h>
+#include <string>
+#include <iostream>
+
+using namespace std;
+
+int XX, YY; //좌표 변수 선언
+char coin; //동전 변수 선언
+string coffee; //커피 변수 선언
+
+void Menu(); //커피 판매 메뉴 함수
+void gotoxy(int x, int y); //좌표설정 함수
+void Coffee(); //커피 제어 함수
+void reset(); //초기화 함수
+
+void Menu() //커피판매기 메뉴 함수
+{
+	printf("Coin(C): X \n");
+	printf("Coffee: X \n");
+	printf("Operation: X \n");
+}
+
+void gotoxy(int x, int y) //좌표값함수 x=가로좌표, y=세로좌표
+{
+	COORD pos = { x, y };
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
+}
+
+void Coffee() // 커피 고르는  함수
+{
+	gotoxy(8, 1); //(8,1)로 가시오
+	cin >> coffee; // 간 곳에서 값을 입력받는다
+	getchar(); // 버퍼 저장 (엔터키도 입력으로 받아서 해주는것)
+
+	if (coffee == "Sugar" || coffee == "sugar"|| coffee == "S" || coffee == "s")  
+		//Sugar 또는 sugar 또는 S 또는 s 입력시 밑에 함수 실행
+	{
+		gotoxy(8, 1);
+		printf("Sugar"); //(8,1)에서 Sugar 출력
+		Sleep(1000); //1초 딜레이
+
+		gotoxy(10, 2);
+		printf(" Cup");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Sugar");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Coffee");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Water ");
+		Sleep(1000);
+		reset(); //리셋함수 실행
+	}
+
+	else if (coffee == "Black" || coffee == "black" || coffee == "B" || coffee == "b")
+	{
+		gotoxy(8, 1);
+		printf("Black");
+		Sleep(1000);
+
+		gotoxy(10, 2);
+		printf(" Cup");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Coffee");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Water ");
+		Sleep(1000);
+		reset();
+	}
+
+	else if (coffee == "Cream" || coffee == "cream" || coffee == "C" || coffee == "c")
+	{
+		gotoxy(8, 1);
+		printf("Cream");
+		Sleep(1000);
+
+		gotoxy(10, 2);
+		printf(" Cup");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Cream");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Coffee");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Water ");
+		Sleep(1000);
+		reset();
+	}
+
+	else if (coffee == "Milk" || coffee == "milk" || coffee == "M" || coffee == "m")
+	{
+		gotoxy(8, 1);
+		printf("Milk");
+		Sleep(1000);
+
+		gotoxy(10, 2);
+		printf(" Cup");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Sugar");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Cream");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Coffee");
+		Sleep(1000);
+		gotoxy(10, 2);
+		printf(" Water ");
+		Sleep(1000);
+		reset();
+	}
+}
+
+void reset() //리셋 함수
+{
+	Sleep(2000); //2초 딜레이
+	gotoxy(9, 0);            //1번째 줄로 가서
+	printf("X        "); //X       출력
+	gotoxy(8, 1);            //2번째 줄
+	printf("X        ");
+	gotoxy(10, 2);           //3번째 줄
+	printf(" X       ");
+}
+
+int main() //메인함수
+{
+	Menu(); //메뉴 함수 실행
+	XX = 9; YY = 0; // 처음 좌표값 잡아주기(초기화)
+	gotoxy(XX, YY); // 위에서 입력한 좌표값 받아서 좌표함수 실행
+
+	while (1) //무한반복
+	{
+		gotoxy(9, 0); //첫번째 줄로 간다.
+		scanf("%c", &coin); //동전(C 또는 c)을 입력받는다.
+		getchar(); // 버퍼 저장
+
+		if (coin == 'C' || coin == 'c') //동전을 넣을 때만 실행
+		{
+			gotoxy(9, 0);
+			printf("%c", coin);
+			Coffee(); //커피고르는 함수 실행
+		}
+		else //동전을 넣지 않으면 탈출
+		{
+			gotoxy(0, 3); //4번째 줄로 가서 밑에 함수 실행
+			printf("\n Error: Coin(C)에 c또는 C를 입력해주세요. \n");
+			break; //탈출
+		}
+	}
+	return 0;
+}

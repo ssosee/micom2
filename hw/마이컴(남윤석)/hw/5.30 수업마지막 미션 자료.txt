@@ -1,0 +1,193 @@
+#include "stm32f4xx.h"
+
+void GPIO_Init(void);
+void EXTI_Init(void);
+void SYSClock_config(void); //RCC init.
+
+void DelayMS(unsigned short wMS);
+void DelayUS(unsigned short wUS);
+
+uint8_t	SW0_Flag;
+uint8_t	SW1_Flag;
+
+int main(void)
+{
+    SYSClock_config(); //클락 초기화 루틴
+    GPIO_Init();
+    EXTI_Init();
+    GPIOG->ODR &= 0x11111100;		// 초기값: LED0~7 Off
+    
+    //GPIO Example(1) LED0 ON
+    GPIOG->ODR |= 0x000000C0; 		// GPIOG->ODR.0 'H'(LED ON)
+    
+    while(1)
+    {
+	//GPIO Example(2) SW1입력으로  LED1 On/Off 
+      /*
+	if((GPIOH->IDR & 0x0200) == 0)	// SW1를 눌렸을 때(SW1 = LOW) (GPIOH->IDR.9 = 'L' ?) 
+	{
+		GPIOG->ODR |= 0x0002;	// LED1 On (GPIOG->ODR.1 'H')
+	}
+	else
+	{
+		GPIOG->ODR &= ~0x0002;	// LED1 Off (GPIOG->ODR.1 'L')
+	}
+	
+  	//GPIO Example(3) SW2입력으로  LED2 1초후 Off
+  	if((GPIOH->IDR & 0x0400) == 0)	// SW1를 눌렸을 때(SW2 = LOW) (GPIOH->IDR.10 = 'L' ?) 
+	{
+		GPIOG->ODR |= 0x04;	// LED2 On (GPIOG->ODR.2 'H')
+		DelayMS(1000);		// Delay (1000ms  = 1s)
+		GPIOG->ODR &= ~0x04;	// LED2 Off (GPIOG->ODR.2 'L') 
+	}*/
+      
+
+	//EXTI Example(1) SW0가 High에서 Low가 될 때 (Falling edge Trigger mode) LED0 toggle
+      
+	if(SW0_Flag)
+	{
+		GPIOG->ODR ^= 0x40;
+		SW0_Flag = 0;
+	}
+
+	//EXTI Example(2) SW1가 Low에서 High가 될 때 (Rising edge Trigger mode) LED1 toggle
+	if(SW1_Flag)
+	{	  
+		GPIOG->ODR ^= 0x80;
+		SW1_Flag = 0;
+	}
+
+    }
+}
+
+/******************************************************************************/
+/*     RCC Set up                                                             */
+/******************************************************************************/
+void SYSClock_config(void)
+{
+/*     PLL (clocked by HSE) used as System clock source                       */
+
+    __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
+
+    // Enable HSE
+    RCC->CR |= 0x00010000;	// Set bit#16 of CR
+    // Disable HSI
+    RCC->CR &= 0xFFFFFFFE;	// Reset bit#0 of CR	
+ 
+    // Wait till HSE is ready and if Time out is reached exit (클락이 나오기까지 레디 비트가 준비 되는 시간) 
+    do
+    {
+	HSEStatus = RCC->CR & 0x00020000;	// CHECK bit#17 of CR (HSE RDY?) 
+	StartUpCounter++;   //무한루프 탈출 변수
+    } while((HSEStatus == 0) && (StartUpCounter != HSE_STARTUP_TIMEOUT));
+
+    if ((RCC->CR & 0x00020000) != RESET)	// CHECK bit#17 of CR (HSE RDY?) // RESET is 0(상수)
+    {
+	HSEStatus = 0x01;	// HSE is Ready!
+    }
+    else
+    {
+	HSEStatus = 0x00;	// HSE is NOT Ready!
+    }
+
+    if (HSEStatus == 0x01)	// HSE clock Enable
+    {
+	// HCLK = SYSCLK / 1 
+	RCC->CFGR |= 0x00000000;
+ 
+	// PCLK2 = HCLK / 2 
+	RCC->CFGR |= 0x00008000;	// PPRE2: APB(Advanced Peripheral Bus)(APB2) High-speed prescaler
+					// 100: AHB clock divided by 2 
+    
+	// PCLK1 = HCLK / 4 
+	RCC->CFGR |= 0x00001400;	// PPRE1: APB(Advanced Peripheral Bus)(APB1) Low-speed prescaler
+					// 101: AHB clock divided by 4 
+ 
+    	// Configure the main PLL 
+	// Reset vlaue: 0x2400 3010 (PPLQ:4, PLLSR:0, PLL_M:16, PLL_N:192, PLL_P: 2(00))
+	RCC->PLLCFGR |= 25;			// PLL_M(6bits): 25(0b011001): /25
+	RCC->PLLCFGR |= (336 << 6);		// PLL_N(9bits): 336 : *336
+	RCC->PLLCFGR |= (((2 >> 1) -1)<<16);// PLL_P(2bits): (2 >> 1) -1=0b00 :  2 : /2 
+	RCC->PLLCFGR |= 0x00400000; 	// PLL_SR(1bit): 1 : HSE oscillator clock selected as PLL and PLLI2S clock
+	    
+	// Enable the main PLL 
+	RCC->CR |= 0x01000000;	// Set bit#24 of CR : PLL ON
+
+	// Wait till the main PLL is ready 
+	while((RCC->CR & 0x02000000) == 0)	// CHECK bit#25 : PLL RDY?  
+	{}
+   
+	// Configure Flash prefetch, Instruction cache, Data cache and wait state 
+	FLASH->ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_5WS;
+
+	// Select the main PLL as system clock source 
+	// Reset value of RCC->CFGR: 0x0000 0000
+	RCC->CFGR &= ~0x00000003;	// clear(쓰레기값 초기화), (Reset value: HSI) 
+	RCC->CFGR |= 0x00000002;	// PLL사용,01(HSE외부클락 사용)
+
+	// Wait till the main PLL is used as system clock source 
+	while ((RCC->CFGR & 0x0000000C ) != 0x00000008);	// CHECK bit#2~3 : PLL as system clock is RDY?  
+	{}
+    }
+    else
+    { // If HSE fails to start-up, the application will have wrong clock
+        /// configuration. User can add here some code to deal with this error 
+    }
+}
+
+void GPIO_Init(void)
+{
+	// LED GPIO(PORT G) 설정
+    	RCC->AHB1ENR	|= 0x00000040; 	// RCC_AHB1ENR(bit8~0) GPIOG(bit#6) Enable							
+	GPIOG->MODER 	= 0x00005555;	// GPIOG PIN0~PIN7 Output mode (0b01)						
+	GPIOG->OSPEEDR 	= 0x00005555;	// GPIOG PIN0~PIN7 Output speed (25MHZ Medium speed) 
+    
+	// SW GPIO(PORT H) 설정 
+	RCC->AHB1ENR 	|= 0x00000080;	// RCC_AHB1ENR(bit8~0) GPIOH(bit#7) Enable							
+	GPIOH->MODER 	= 0x00000000;	// GPIOH PIN8~PIN15 Input mode (reset state)				
+}	
+
+
+void EXTI_Init(void)
+{
+    	RCC->AHB1ENR 	|= 0x80;	// RCC_AHB1ENR GPIOH Enable
+	RCC->APB2ENR 	|= 0x4000;	//Enable System Configuration Controller Clock
+	
+	GPIOH->MODER 	|= 0x0;		// GPIOH PIN8~PIN15 Input mode (reset state) //GPIOH핀들을 외부 인터럽트 핀으로 사용				 
+	
+	SYSCFG->EXTICR[3] |= 0x7700; 	// EXTI8,9에 대한 소스 입력은 GPIOH로 설정	
+	
+	EXTI->FTSR |= 0x8000;		// Falling Trigger Enable  
+	EXTI->RTSR |= 0x4000;		// Rising Trigger  Enable    
+    	EXTI->IMR |= 0xC000;  		// EXTI8,9 인터럽트 mask
+		
+	NVIC->ISER[1] 	|= ( 1 << (40- 32) ); // Enable Interrupt EXTI8,9 Vector table Position 참조
+}
+
+void EXTI15_10_IRQHandler(void)		// EXTI 5~9 인터럽트 핸들러
+{
+    if(EXTI->PR & 0x4000) 		//I nterrupt Pending? -> Pending Ragister : 어떤 레지스터가 사용되었는지 기록되는것
+    {
+        EXTI->PR |= 0x4000; 		// Pending bit Clear
+	SW0_Flag = 1;
+    }
+    
+    else if(EXTI->PR & 0x8000) 		// Interrupt Pending?
+    {
+        EXTI->PR |= 0x8000; 		// Pending bit Clear
+	SW1_Flag = 1;	
+    }
+}
+
+void DelayMS(unsigned short wMS)
+{
+    register unsigned short i;
+    for (i=0; i<wMS; i++)
+        DelayUS(1000);         		// 1000us => 1ms
+}
+
+void DelayUS(unsigned short wUS)
+{
+    volatile int Dly = (int)wUS*17;
+    for(; Dly; Dly--);
+}
